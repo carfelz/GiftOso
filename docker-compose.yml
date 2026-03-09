@@ -42,6 +42,8 @@ services:
       - NODE_ENV=development
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/medusa-store
       - REDIS_URL=redis://redis:6379
+      - LOGISTICS_SERVICE_URL=http://logistics:3001
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-giftoso-internal-secret-key}
     env_file:
       - ./storebackend/.env
     volumes:
@@ -71,6 +73,36 @@ services:
       - ./storefront:/app
       - /app/node_modules
       - /app/.next
+    networks:
+      - giftoso_network
+
+  # Logistics Microservice (NestJS)
+  logistics:
+    build:
+      context: ./services/logistics
+      dockerfile: Dockerfile
+    container_name: giftoso_logistics
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_NAME=medusa-store
+      - DATABASE_SCHEMA=logistics
+      - DATABASE_SSL=false
+      - REDIS_URL=redis://redis:6379
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-giftoso-internal-secret-key}
+    volumes:
+      - ./services/logistics:/app
+      - /app/node_modules
     networks:
       - giftoso_network
 
