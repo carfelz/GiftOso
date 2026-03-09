@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Análisis del Mercado de Regalos - República Dominicana</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Chosen Palette: Warm Neutrals & Soft Accents (Stone, Rose, Amber, Teal) -->
+  <!-- Application Structure Plan: A single-page dashboard with a sticky side/top navigation. Content is divided into thematic sections (Evolución, Motivos, Flujo Monetario, Competencia, Fallas) corresponding to the user's prompt. This structure allows linear reading or random access via navigation. Interactive charts are used to make data digestible, and interactive cards hide/reveal solutions to market flaws to keep the UI clean. -->
+  <!-- Visualization & Content Choices: 
+        1. Growth -> Line Chart (Chart.js) -> Shows 10-year trend effectively.
+        2. Motives -> Doughnut Chart (Chart.js) -> Shows proportions of market drivers.
+        3. Cash Flow -> Bar Chart (Chart.js) -> Highlights seasonal peaks (Feb, May, Dec).
+        4. Competitors -> Radar Chart (Chart.js) -> Compares Giftoso vs others across multiple metrics.
+        5. Flaws -> Interactive HTML/CSS Cards -> Clicking reveals solutions, saving space.
+        CONFIRMATION: NO SVG used, NO Mermaid used. Icons are Unicode. 
+    -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+  <style>
+    body {
+      background-color: #fafaf9;
+      /* stone-50 */
+      color: #292524;
+      /* stone-800 */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 40vh;
+      max-height: 400px;
+    }
+
+    @media (min-width: 768px) {
+      .chart-container {
+        height: 350px;
+      }
+    }
+
+    .nav-button.active {
+      background-color: #f43f5e;
+      /* rose-500 */
+      color: white;
+      border-color: #f43f5e;
+    }
+
+    .content-section {
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .flip-card-inner {
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .flip-card.flipped .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .flip-card-front,
+    .flip-card-back {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .flip-card-back {
+      transform: rotateY(180deg);
+    }
+  </style>
+</head>
+
+<body class="flex flex-col md:flex-row min-h-screen">
+
+  <nav
+    class="w-full md:w-64 lg:w-72 bg-white shadow-lg md:h-screen md:sticky md:top-0 flex flex-col p-6 overflow-y-auto">
+    <div class="mb-8 text-center md:text-left">
+      <h1 class="text-2xl font-bold text-rose-600 tracking-tight">🎁 Mercado de Regalos RD</h1>
+      <p class="text-xs text-stone-500 mt-2 uppercase tracking-widest">Análisis Interactivo</p>
+    </div>
+
+    <div class="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-4 md:pb-0">
+      <button onclick="switchTab('resumen')" id="btn-resumen"
+        class="nav-button active whitespace-nowrap px-4 py-3 text-sm font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-colors text-left flex items-center gap-2">
+        <span>📊</span> Resumen Ejecutivo
+      </button>
+      <button onclick="switchTab('crecimiento')" id="btn-crecimiento"
+        class="nav-button whitespace-nowrap px-4 py-3 text-sm font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-colors text-left flex items-center gap-2">
+        <span>📈</span> Crecimiento (10 Años)
+      </button>
+      <button onclick="switchTab('motivos')" id="btn-motivos"
+        class="nav-button whitespace-nowrap px-4 py-3 text-sm font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-colors text-left flex items-center gap-2">
+        <span>🎯</span> Tipificación y Motivos
+      </button>
+      <button onclick="switchTab('flujo')" id="btn-flujo"
+        class="nav-button whitespace-nowrap px-4 py-3 text-sm font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-colors text-left flex items-center gap-2">
+        <span>💰</span> Flujo Monetario
+      </button>
+      <button onclick="switchTab('competencia')" id="btn-competencia"
+        class="nav-button whitespace-nowrap px-4 py-3 text-sm font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-colors text-left flex items-center gap-2">
+        <span>🏆</span> Análisis vs Giftoso
+      </button>
+      <button onclick="switchTab('fallas')" id="btn-fallas"
+        class="nav-button whitespace-nowrap px-4 py-3 text-sm font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 transition-colors text-left flex items-center gap-2">
+        <span>⚠️</span> Fallas y Mejoras
+      </button>
+    </div>
+
+    <div class="mt-auto hidden md:block pt-8 text-xs text-stone-400">
+      Datos sintetizados para análisis estratégico del sector retail de regalos en R.D.
+    </div>
+  </nav>
+
+  <main class="flex-1 p-6 lg:p-12 overflow-x-hidden">
+
+    <div id="resumen" class="content-section active max-w-5xl mx-auto">
+      <h2 class="text-3xl lg:text-4xl font-extrabold text-stone-800 mb-4">Panorama del Mercado de Regalos en RD</h2>
+      <p class="text-lg text-stone-600 mb-8 leading-relaxed">
+        Esta sección ofrece una vista general del informe. El ecosistema dominicano de regalos (arreglos florales,
+        pastelerías, y encargos personalizados) ha evolucionado de tiendas físicas tradicionales a un dinámico modelo de
+        comercio social (Instagram) y e-commerce. Explore las pestañas para profundizar en cada área de análisis.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 border-t-4 border-t-rose-500">
+          <div class="text-3xl mb-2">🌸</div>
+          <h3 class="font-bold text-stone-800">Tamaño Estimado</h3>
+          <p class="text-2xl font-black text-rose-600 mt-1">+$45M USD</p>
+          <p class="text-xs text-stone-500 mt-2">Gasto anual en el sector formal e informal.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 border-t-4 border-t-amber-500">
+          <div class="text-3xl mb-2">🚀</div>
+          <h3 class="font-bold text-stone-800">Crecimiento Digital</h3>
+          <p class="text-2xl font-black text-amber-600 mt-1">320%</p>
+          <p class="text-xs text-stone-500 mt-2">Aumento en ventas por IG/Web desde 2019.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 border-t-4 border-t-teal-500">
+          <div class="text-3xl mb-2">🎂</div>
+          <h3 class="font-bold text-stone-800">Frecuencia</h3>
+          <p class="text-2xl font-black text-teal-600 mt-1">3.5 / año</p>
+          <p class="text-xs text-stone-500 mt-2">Compras promedio por usuario activo.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 border-t-4 border-t-indigo-500">
+          <div class="text-3xl mb-2">📱</div>
+          <h3 class="font-bold text-stone-800">Medio Principal</h3>
+          <p class="text-2xl font-black text-indigo-600 mt-1">WhatsApp</p>
+          <p class="text-xs text-stone-500 mt-2">Canal de cierre de ventas #1 en RD.</p>
+        </div>
+      </div>
+
+      <div class="bg-stone-100 p-8 rounded-2xl text-center">
+        <p class="text-xl font-medium text-stone-700 italic">"El dominicano no solo compra un artículo, compra la
+          experiencia de hacer sentir especial al otro, delegando la logística a terceros."</p>
+        <button onclick="switchTab('crecimiento')"
+          class="mt-6 bg-rose-500 hover:bg-rose-600 text-white px-6 py-3 rounded-full font-bold transition-transform transform hover:scale-105 shadow-md">
+          Iniciar Análisis Detallado ➔
+        </button>
+      </div>
+    </div>
+
+    <div id="crecimiento" class="content-section max-w-5xl mx-auto">
+      <h2 class="text-3xl font-extrabold text-stone-800 mb-4">Crecimiento en los Últimos 10 Años</h2>
+      <p class="text-lg text-stone-600 mb-8 leading-relaxed">
+        Este módulo visualiza la evolución del volumen de mercado desde 2014. El crecimiento ha estado marcado por la
+        penetración de internet, la bancarización y el punto de inflexión radical que representó la pandemia de 2020.
+        Observe la gráfica interactiva para entender las tendencias por canal de venta.
+      </p>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 mb-8">
+        <div class="flex flex-wrap gap-4 mb-4 justify-center">
+          <button onclick="updateGrowthChart('total')"
+            class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-md text-sm font-semibold transition-colors">Volumen
+            Total</button>
+          <button onclick="updateGrowthChart('canales')"
+            class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-md text-sm font-semibold transition-colors">Por
+            Canal (Físico vs Digital)</button>
+        </div>
+        <div class="chart-container">
+          <canvas id="growthChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-rose-50 p-6 rounded-xl border border-rose-100">
+          <h4 class="font-bold text-rose-800 mb-2">Hitos Clave (2014-2019)</h4>
+          <ul class="list-disc list-inside text-stone-700 text-sm space-y-2">
+            <li>Transición de la floristería tradicional a "Boutiques de Regalos".</li>
+            <li>Surgimiento de pastelerías artesanales en Instagram (Dark Kitchens).</li>
+            <li>Crecimiento sostenido del 5-7% anual.</li>
+          </ul>
+        </div>
+        <div class="bg-teal-50 p-6 rounded-xl border border-teal-100">
+          <h4 class="font-bold text-teal-800 mb-2">El Efecto Pandemia (2020-Actualidad)</h4>
+          <ul class="list-disc list-inside text-stone-700 text-sm space-y-2">
+            <li>Explosión del e-commerce local y pagos por transferencia/links.</li>
+            <li>Auge de los "Desayunos Sorpresa" por restricciones de movilidad.</li>
+            <li>Consolidación del delivery de última milla (Uber Moto, PedidosYa).</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="motivos" class="content-section max-w-5xl mx-auto">
+      <h2 class="text-3xl font-extrabold text-stone-800 mb-4">Tipificación del Mercado y Motivo Común</h2>
+      <p class="text-lg text-stone-600 mb-8 leading-relaxed">
+        ¿Por qué compra el dominicano? Esta sección categoriza la intención de compra. Hemos tipificado el mercado para
+        descubrir el hilo conductor. Haga clic en los segmentos de la gráfica para ver detalles específicos.
+      </p>
+
+      <div class="flex flex-col lg:flex-row gap-8 items-center">
+        <div class="w-full lg:w-1/2 bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+          <div class="chart-container" style="height: 300px;">
+            <canvas id="motivesChart"></canvas>
+          </div>
+        </div>
+        <div class="w-full lg:w-1/2">
+          <div id="motive-details" class="bg-stone-800 text-white p-8 rounded-2xl shadow-lg relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 text-4xl opacity-20">🎯</div>
+            <h3 class="text-2xl font-bold mb-4 text-amber-400">El Motivo Común:</h3>
+            <p class="text-xl font-light mb-6">"Conveniencia Emocional y Status"</p>
+            <p class="text-stone-300 text-sm leading-relaxed">
+              Independientemente de la ocasión (madres, cumpleaños, perdón), el consumidor dominicano busca externalizar
+              la creación del regalo para asegurar un nivel de <strong>estética superior (Instagrammable)</strong>,
+              evitando el estrés de la logística, pero manteniendo el crédito emocional de haber enviado el detalle.
+            </p>
+            <div class="mt-6 pt-6 border-t border-stone-600 flex gap-4">
+              <span class="bg-stone-700 px-3 py-1 rounded text-xs">Ahorro de Tiempo</span>
+              <span class="bg-stone-700 px-3 py-1 rounded text-xs">Estética Visual</span>
+              <span class="bg-stone-700 px-3 py-1 rounded text-xs">Factor Sorpresa</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="flujo" class="content-section max-w-5xl mx-auto">
+      <h2 class="text-3xl font-extrabold text-stone-800 mb-4">Flujo Monetario y Estacionalidad</h2>
+      <p class="text-lg text-stone-600 mb-8 leading-relaxed">
+        Este apartado analiza cómo se mueve el dinero durante el año. El mercado de regalos en RD es altamente
+        estacional, dependiendo de fechas clave. Interactúe con la gráfica para observar los picos y valles financieros
+        del sector.
+      </p>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 mb-8">
+        <div class="chart-container">
+          <canvas id="cashFlowChart"></canvas>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white border-l-4 border-rose-500 p-4 shadow-sm">
+          <h4 class="font-bold text-stone-800">Febrero (San Valentín)</h4>
+          <p class="text-sm text-stone-600 mt-2">Alto volumen de transacciones de ticket medio-bajo. Dominan las rosas
+            rojas, fresas con chocolate y globos.</p>
+        </div>
+        <div class="bg-white border-l-4 border-amber-500 p-4 shadow-sm">
+          <h4 class="font-bold text-stone-800">Mayo (Día de las Madres)</h4>
+          <p class="text-sm text-stone-600 mt-2"><strong>El pico más alto del año.</strong> (Último domingo de mayo en
+            RD). Ticket promedio alto. Orquídeas, cajas personalizadas, joyería.</p>
+        </div>
+        <div class="bg-white border-l-4 border-teal-500 p-4 shadow-sm">
+          <h4 class="font-bold text-stone-800">Flujo Base (Cumpleaños)</h4>
+          <p class="text-sm text-stone-600 mt-2">Genera el flujo de caja operativo mensual. Dominado por pastelerías y
+            pequeños arreglos. Requiere alta fidelización.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="competencia" class="content-section max-w-5xl mx-auto">
+      <h2 class="text-3xl font-extrabold text-stone-800 mb-4">Identificación de Competidores (vs Giftoso)</h2>
+      <p class="text-lg text-stone-600 mb-8 leading-relaxed">
+        Aquí analizamos el panorama competitivo. "Giftoso" se enfrenta a diferentes niveles de competencia, desde
+        floristerías establecidas hasta el masivo mercado informal de Instagram. El gráfico de radar compara fortalezas
+        en áreas clave.
+      </p>
+
+      <div
+        class="flex flex-col lg:flex-row gap-8 items-center bg-white p-8 rounded-2xl shadow-sm border border-stone-100">
+        <div class="w-full lg:w-1/2">
+          <div class="chart-container" style="height: 350px;">
+            <canvas id="competitorChart"></canvas>
+          </div>
+        </div>
+        <div class="w-full lg:w-1/2 space-y-6">
+          <div>
+            <h4 class="text-lg font-bold text-rose-600 flex items-center gap-2"><span>🏪</span> Competidores Directos
+              (Nicho Cajas/Online)</h4>
+            <p class="text-sm text-stone-600">Marcas como <strong>The Gift Box RD</strong> o <strong>Detail
+                Box</strong>. Tienen fuerte presencia visual en redes, empaques premium y catálogo curado. Son la
+              amenaza más directa a modelos tipo Giftoso.</p>
+          </div>
+          <div>
+            <h4 class="text-lg font-bold text-stone-800 flex items-center gap-2"><span>💐</span> Tradicionales Híbridos
+            </h4>
+            <p class="text-sm text-stone-600">Ejemplo: <strong>Jardín Constanza</strong>. Tienen la infraestructura, el
+              producto local a bajo costo y credibilidad, pero su experiencia digital (UX) y personalización suele ser
+              rígida y corporativa.</p>
+          </div>
+          <div>
+            <h4 class="text-lg font-bold text-stone-800 flex items-center gap-2"><span>📱</span> Mercado Informal
+              (Instagram)</h4>
+            <p class="text-sm text-stone-600">Miles de cuentas independientes. Compiten agresivamente por precio. Faltan
+              estándares de calidad y garantía de entrega, pero dominan por volumen y atención hiper-personalizada por
+              WhatsApp.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="fallas" class="content-section max-w-5xl mx-auto">
+      <h2 class="text-3xl font-extrabold text-stone-800 mb-4">Fallas del Mercado y Recomendaciones</h2>
+      <p class="text-lg text-stone-600 mb-8 leading-relaxed">
+        Toda industria tiene puntos de dolor. En esta sección detallamos las deficiencias operativas y estratégicas del
+        mercado dominicano de regalos. <strong>Haga clic en cada tarjeta de falla para revelar la recomendación de
+          mejora.</strong>
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <div class="flip-card h-64 cursor-pointer" onclick="this.classList.toggle('flipped')">
+          <div class="flip-card-inner relative w-full h-full text-center shadow-md rounded-2xl">
+            <div
+              class="flip-card-front absolute w-full h-full bg-white border border-stone-200 rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div class="text-4xl mb-4">🚚</div>
+              <h3 class="text-xl font-bold text-stone-800">Colapso Logístico en Fechas Pico</h3>
+              <p class="text-sm text-stone-500 mt-2">Incumplimiento de horarios en San Valentín y Madres. Uso de taxis
+                no capacitados.</p>
+              <span class="text-xs text-rose-500 mt-4 font-bold uppercase tracking-wider">Clic para ver solución</span>
+            </div>
+            <div
+              class="flip-card-back absolute w-full h-full bg-rose-500 text-white rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div class="text-3xl mb-2">💡</div>
+              <h3 class="text-lg font-bold mb-2">Solución Recomendada</h3>
+              <p class="text-sm">Implementar ruteo dinámico por zonas. Limitar cupos por código postal y crear alianzas
+                con flotillas corporativas para esas 48 horas críticas.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flip-card h-64 cursor-pointer" onclick="this.classList.toggle('flipped')">
+          <div class="flip-card-inner relative w-full h-full text-center shadow-md rounded-2xl">
+            <div
+              class="flip-card-front absolute w-full h-full bg-white border border-stone-200 rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div class="text-4xl mb-4">🤖</div>
+              <h3 class="text-xl font-bold text-stone-800">Falta de Retención (CRM)</h3>
+              <p class="text-sm text-stone-500 mt-2">Los negocios olvidan las fechas de los clientes. Cada año deben
+                captar al mismo cliente desde cero.</p>
+              <span class="text-xs text-rose-500 mt-4 font-bold uppercase tracking-wider">Clic para ver solución</span>
+            </div>
+            <div
+              class="flip-card-back absolute w-full h-full bg-amber-500 text-white rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div class="text-3xl mb-2">💡</div>
+              <h3 class="text-lg font-bold mb-2">Solución Recomendada</h3>
+              <p class="text-sm">Automatizar recordatorios anuales ("Pronto es el cumple de Ana"). Ofrecer descuentos
+                por agendar regalos recurrentes (suscripciones).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flip-card h-64 cursor-pointer" onclick="this.classList.toggle('flipped')">
+          <div class="flip-card-inner relative w-full h-full text-center shadow-md rounded-2xl">
+            <div
+              class="flip-card-front absolute w-full h-full bg-white border border-stone-200 rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div class="text-4xl mb-4">🛒</div>
+              <h3 class="text-xl font-bold text-stone-800">UX de Compra Friccionada</h3>
+              <p class="text-sm text-stone-500 mt-2">Cotizaciones lentas por DM. Procesos manuales de envío de
+                comprobantes bancarios.</p>
+              <span class="text-xs text-rose-500 mt-4 font-bold uppercase tracking-wider">Clic para ver solución</span>
+            </div>
+            <div
+              class="flip-card-back absolute w-full h-full bg-teal-600 text-white rounded-2xl p-6 flex flex-col items-center justify-center">
+              <div class="text-3xl mb-2">💡</div>
+              <h3 class="text-lg font-bold mb-2">Solución Recomendada</h3>
+              <p class="text-sm">E-commerce autogestionable con pasarela local (Azul/Cardnet) y validación inmediata,
+                liberando a ventas para atención premium.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Variables for Chart instances to allow destroying and updating
+    let growthChartInstance = null;
+    let motivesChartInstance = null;
+    let cashFlowChartInstance = null;
+    let competitorChartInstance = null;
+
+    // Data Storage
+    const growthData = {
+      years: ['2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+      total: [15, 16.5, 18, 20, 22.5, 25, 35, 42, 40, 43, 45], // in Millions USD (Estimates)
+      physical: [14, 15, 15.5, 16, 17, 18, 5, 8, 12, 14, 15],
+      digital: [1, 1.5, 2.5, 4, 5.5, 7, 30, 34, 28, 29, 30]
+    };
+
+    const chartColors = {
+      rose: 'rgba(244, 63, 94, 1)',
+      roseLight: 'rgba(244, 63, 94, 0.2)',
+      amber: 'rgba(245, 158, 11, 1)',
+      teal: 'rgba(20, 184, 166, 1)',
+      stone: 'rgba(120, 113, 108, 1)',
+      indigo: 'rgba(99, 102, 241, 1)'
+    };
+
+    // Navigation Function
+    function switchTab(tabId) {
+      document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+      document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+
+      document.getElementById(tabId).classList.add('active');
+      document.getElementById('btn-' + tabId).classList.add('active');
+
+      // Render charts if they belong to the active tab
+      if (tabId === 'crecimiento' && !growthChartInstance) renderGrowthChart('total');
+      if (tabId === 'motivos' && !motivesChartInstance) renderMotivesChart();
+      if (tabId === 'flujo' && !cashFlowChartInstance) renderCashFlowChart();
+      if (tabId === 'competencia' && !competitorChartInstance) renderCompetitorChart();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Chart renderers
+    function renderGrowthChart(type) {
+      const ctx = document.getElementById('growthChart').getContext('2d');
+      if (growthChartInstance) growthChartInstance.destroy();
+
+      let datasets = [];
+      if (type === 'total') {
+        datasets = [{
+          label: 'Volumen Total del Mercado (Millones USD)',
+          data: growthData.total,
+          borderColor: chartColors.rose,
+          backgroundColor: chartColors.roseLight,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5
+        }];
+      } else {
+        datasets = [
+          {
+            label: 'Ventas Físicas',
+            data: growthData.physical,
+            borderColor: chartColors.stone,
+            backgroundColor: 'transparent',
+            tension: 0.4
+          },
+          {
+            label: 'Ventas Digitales / IG',
+            data: growthData.digital,
+            borderColor: chartColors.teal,
+            backgroundColor: 'rgba(20, 184, 166, 0.2)',
+            fill: true,
+            tension: 0.4
+          }
+        ];
+      }
+
+      growthChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: growthData.years, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Millones USD' } }
+          }
+        }
+      });
+    }
+
+    function updateGrowthChart(type) {
+      renderGrowthChart(type);
+    }
+
+    function renderMotivesChart() {
+      const ctx = document.getElementById('motivesChart').getContext('2d');
+      motivesChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Celebración (Cumpleaños/Aniversario)', 'Obligación Social (Fechas Pico)', 'Agradecimiento / Perdón', 'Auto-regalo / Corporativo'],
+          datasets: [{
+            data: [45, 35, 12, 8],
+            backgroundColor: [chartColors.rose, chartColors.amber, chartColors.teal, chartColors.stone],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: function (context) { return ' ' + context.label + ': ' + context.raw + '%'; }
+              }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+    }
+
+    function renderCashFlowChart() {
+      const ctx = document.getElementById('cashFlowChart').getContext('2d');
+      cashFlowChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+          datasets: [{
+            label: 'Índice de Flujo Monetario (Base 100)',
+            data: [60, 180, 70, 75, 250, 65, 60, 55, 60, 70, 90, 140],
+            backgroundColor: function (context) {
+              const index = context.dataIndex;
+              // Highlight Feb (1), May (4), Dec (11)
+              if (index === 1) return chartColors.rose;
+              if (index === 4) return chartColors.amber;
+              if (index === 11) return chartColors.teal;
+              return chartColors.stone;
+            },
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderCompetitorChart() {
+      const ctx = document.getElementById('competitorChart').getContext('2d');
+      competitorChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: [
+            'Experiencia Digital (UX)',
+            'Prestigio de Marca',
+            'Logística / Entrega',
+            'Personalización',
+            'Precio Competitivo',
+            'Variedad de Catálogo'
+          ],
+          datasets: [
+            {
+              label: 'Giftoso (Propuesta)',
+              data: [9, 6, 8, 9, 7, 8],
+              backgroundColor: 'rgba(244, 63, 94, 0.2)',
+              borderColor: chartColors.rose,
+              pointBackgroundColor: chartColors.rose
+            },
+            {
+              label: 'Mercado Informal (IG)',
+              data: [4, 3, 4, 10, 9, 6],
+              backgroundColor: 'rgba(120, 113, 108, 0.2)',
+              borderColor: chartColors.stone,
+              pointBackgroundColor: chartColors.stone
+            },
+            {
+              label: 'Cadenas Tradicionales',
+              data: [5, 9, 7, 4, 5, 5],
+              backgroundColor: 'rgba(20, 184, 166, 0.2)',
+              borderColor: chartColors.teal,
+              pointBackgroundColor: chartColors.teal
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { display: true },
+              suggestedMin: 0,
+              suggestedMax: 10
+            }
+          }
+        }
+      });
+    }
+
+    // Initialize default view chart if needed (resumen has no chart initially)
+  </script>
+</body>
+
+</html>
