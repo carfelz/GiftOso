@@ -6,6 +6,20 @@ All notable changes to the GiftOso project will be documented in this file.
 
 ### Added
 
+- **Storefront Thoughtfully Redesign** (`storefront/`)
+  - Redesigned the storefront to mirror thoughtfully.com UI/UX.
+  - Implemented a full-bleed Hero banner and created a new visual Categories component (`src/modules/home/components/categories/index.tsx`).
+  - Added an announcement bar and integrated the GiftOso brand identity with Red Panda logo styling into the global Navigation.
+  - Retweaked `ProductRail` and `Thumbnail` layouts for a cleaner, premium flat presentation.
+  - Streamlined the global Footer content for GiftOso.
+
+- **Storefront "Liquid Glass" Revamp** (`storefront/`)
+  - Implemented the 'Liquid Glass' UI aesthetics with Bamboo Cream, Pandas Rust, and Deep Slate colors and `glass-panel` utility.
+  - Built core branded components: `ZoomImage`, `ProductModal`, "Wink" Nav Header, and `ProductCarousel` with Swiper.
+  - Integrated Red Panda easter eggs: Empty Cart message, Gift Assistant FAB, and Order Success Celebration.
+  - Re-designed checkout UI with a custom Gift Wizard Stepper built on top of MUI `<Stepper>`.
+  - Outfitted `storefront/` project with Jest + React Testing Library testing suite.
+
 - **NestJS Logistics Microservice** (`services/logistics/`)
   - `POST /v1/logistics/validate-address` — DR sector validation (Piantini, Naco, Gurabo)
   - `GET /v1/logistics/shipping-options` — Zone-based rate calculation with pantry proximity
