@@ -2,16 +2,17 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: giftoso_postgres
+    container_name: giftoso_postgres_medusa
     restart: unless-stopped
     environment:
-      POSTGRES_DB: medusa-store
+      POSTGRES_DB: medusa
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - medusa_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - giftoso_network
 
@@ -39,11 +40,14 @@ services:
       - "9000:9000"
       - "5173:5173"
     environment:
+      - MEDUSA_FF_CACHING=true
       - NODE_ENV=development
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/medusa-store
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/medusa
       - REDIS_URL=redis://redis:6379
-      - LOGISTICS_SERVICE_URL=http://logistics:3001
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:-giftoso-internal-secret-key}
+      - SYNC_SECRET=${SYNC_SECRET:-giftoso-sync-secret-key}
+      - STRAPI_API_URL=http://cms:1337/api
+      - STRAPI_API_TOKEN=bfe58f5bfbbb6d2d10e5bcb0b3547de0cdfb3d6cbf49ceae92c21ba7a2fe17bc3abe42be332ba8bcdbb999eaf63c2961e6ac25afaf606d39d40c858dc1e602c2bfb136757e59f7819219b088eaed4582ece0bc0cff56bf408aaff2f442cf2aa695996cf8c39a94e91f101994524110714ac434b952d4bfe5909335938cd338f4
     env_file:
       - ./storebackend/.env
     volumes:
@@ -67,6 +71,7 @@ services:
       - NODE_ENV=development
       - MEDUSA_BACKEND_URL=http://medusa:9000
       - NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
+      - NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_48ecc7a32735b7665fff2c16ddef465a8d89b0091682241948ccf595c49826d3
     env_file:
       - ./storefront/.env.local
     volumes:
@@ -95,7 +100,7 @@ services:
       - DATABASE_PORT=5432
       - DATABASE_USERNAME=postgres
       - DATABASE_PASSWORD=postgres
-      - DATABASE_NAME=medusa-store
+      - DATABASE_NAME=medusa
       - DATABASE_SCHEMA=logistics
       - DATABASE_SSL=false
       - REDIS_URL=redis://redis:6379
@@ -106,8 +111,39 @@ services:
     networks:
       - giftoso_network
 
+  # Headless CMS (Strapi)
+  cms:
+    build:
+      context: ./services/cms
+      dockerfile: Dockerfile
+    container_name: giftoso_cms
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "1337:1337"
+    environment:
+      - DATABASE_CLIENT=postgres
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=cms
+      - DATABASE_USERNAME=postgres
+      - DATABASE_PASSWORD=postgres
+      - DATABASE_SCHEMA=public
+      - NODE_ENV=development
+      - SYNC_SECRET=${SYNC_SECRET:-giftoso-sync-secret-key}
+      - WATCH_IGNORE_FILES=**/dist/**,**/.strapi/**,**/types/**
+    volumes:
+      - ./services/cms/config:/opt/app/config
+      - ./services/cms/src:/opt/app/src
+      - ./services/cms/package.json:/opt/package.json
+      - ./services/cms/.env:/opt/app/.env
+      - ./services/cms/public/uploads:/opt/app/public/uploads
+    networks:
+      - giftoso_network
+
 volumes:
-  postgres_data:
+  medusa_data:
 
 
 networks:
